@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: #171717;
+    --foreground: #ffffff;
+    --accent: #facc15;
+    --accent-dark: #f59e0b;
+}
+
+@layer base {
+    * {
+        @apply border-white/5;
+    }
+
+    body {
+        @apply bg-neutral-900 text-white;
+        font-feature-settings:
+            "rlig" 1,
+            "calt" 1;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-white/[0.02];
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-white/15;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(250, 204, 21, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(250, 204, 21, 0.4);
+    }
+}
+
+/* Glass effect */
+.glass {
+    @apply bg-white/[0.02] backdrop-blur-xl border border-white/5;
+}
+
+/* Gradient text */
+.gradient-text {
+    @apply bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent;
+}
+
+/* Focus styles */
+button:focus-visible,
+input:focus-visible {
+    @apply outline-none ring-2 ring-yellow-500/50 ring-offset-2 ring-offset-neutral-900;
+}
+
+/* Selection */
+::selection {
+    @apply bg-yellow-500/30 text-white;
+}

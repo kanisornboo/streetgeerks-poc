@@ -1,0 +1,5 @@
+export { DashboardView } from "./dashboard-view"
+export { ParticipantsView } from "./participants-view"
+export { ProgrammesView } from "./programmes-view"
+export { AnalyticsView } from "./analytics-view"
+export { SettingsView } from "./settings-view"
