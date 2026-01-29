@@ -92,7 +92,8 @@ export default function ModuleDetailPage() {
                 setIsLoading(true);
                 setError(null);
 
-                const response = await fetch("http://localhost:8080/user");
+                // Use local API route to avoid CORS issues
+                const response = await fetch("/api/user");
 
                 if (!response.ok) {
                     throw new Error("Failed to fetch users");
