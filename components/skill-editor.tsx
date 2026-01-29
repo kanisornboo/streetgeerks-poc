@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header, Sidebar } from "./layout";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -287,6 +287,61 @@ export default function SkillEditor({ trainingId }: { trainingId: string }) {
     const [activeNav, setActiveNav] = useState("skills");
     const moduleName = params.moduleName as string;
 
+    // API data state
+    const [lessons, setLessons] = useState<Lesson[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Fetch data from JSONPlaceholder API
+    useEffect(() => {
+        const fetchLessons = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+
+                // Fetch posts and users in parallel
+                const [postsResponse, usersResponse] = await Promise.all([
+                    fetch(
+                        "https://jsonplaceholder.typicode.com/posts?_limit=25",
+                    ),
+                    fetch("https://jsonplaceholder.typicode.com/users"),
+                ]);
+
+                if (!postsResponse.ok || !usersResponse.ok) {
+                    throw new Error("Failed to fetch data");
+                }
+
+                const posts: JsonPlaceholderPost[] = await postsResponse.json();
+                const users: JsonPlaceholderUser[] = await usersResponse.json();
+
+                // Create a map of user IDs to names
+                const userMap = new Map(
+                    users.map((user) => [user.id, user.name]),
+                );
+
+                // Map posts to Lesson structure
+                const mappedLessons: Lesson[] = posts.map((post) => ({
+                    sessionId: String(300 + post.id),
+                    lessonPlan:
+                        post.title.charAt(0).toUpperCase() +
+                        post.title.slice(1),
+                    staffId: userMap.get(post.userId) || `Staff ${post.userId}`,
+                    studentCount: Math.floor(Math.random() * 25) + 10, // Random count 10-34
+                }));
+
+                setLessons(mappedLessons);
+            } catch (err) {
+                setError(
+                    err instanceof Error ? err.message : "An error occurred",
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchLessons();
+    }, []);
+
     const { title, subtitle } = pageConfig[activeNav] || pageConfig.dashboard;
 
     const module = modules.find(
@@ -298,6 +353,35 @@ export default function SkillEditor({ trainingId }: { trainingId: string }) {
     const renderContent = () => {
         switch (activeNav) {
             case "skills":
+                if (isLoading) {
+                    return (
+                        <div className="w-full flex items-center justify-center py-20">
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+                                <p className="text-gray-400">
+                                    Loading sessions...
+                                </p>
+                            </div>
+                        </div>
+                    );
+                }
+
+                if (error) {
+                    return (
+                        <div className="w-full flex items-center justify-center py-20">
+                            <div className="flex flex-col items-center gap-4 text-center">
+                                <p className="text-red-400">Error: {error}</p>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => window.location.reload()}
+                                >
+                                    Retry
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                }
+
                 return (
                     <div className="w-full">
                         <div className="flex items-center py-4 gap-4">
@@ -524,7 +608,7 @@ export default function SkillEditor({ trainingId }: { trainingId: string }) {
     );
     const [rowSelection, setRowSelection] = useState({});
     const table = useReactTable({
-        data,
+        data: lessons,
         columns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -608,8 +692,8 @@ const sessionSchema = z
             .string()
             .min(1, "Title is required")
             .max(100, "Title must be less than 100 characters"),
-        dateFrom: z.date({ required_error: "Start date is required" }),
-        dateTo: z.date({ required_error: "End date is required" }),
+        dateFrom: z.date({ message: "Start date is required" }),
+        dateTo: z.date({ message: "End date is required" }),
         time: z.string().min(1, "Time is required"),
         location: z.string().min(1, "Location is required"),
         staff: z.string().min(1, "Staff name is required"),

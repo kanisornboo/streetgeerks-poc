@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header, Sidebar } from "./layout";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -84,100 +84,27 @@ const behaviourNotes = [
     },
 ];
 
-// Mock data for participants
-const participantsData: Participant[] = [
-    {
-        id: "1",
-        sessionId: "316",
-        startTime: "2024-01-15T09:00:00Z",
-        numberOfParticipants: 12,
-        coachName: "John Smith",
-    },
-    {
-        id: "2",
-        sessionId: "317",
-        startTime: "2024-01-16T10:00:00Z",
-        numberOfParticipants: 8,
-        coachName: "Sarah Johnson",
-    },
-    {
-        id: "3",
-        sessionId: "318",
-        startTime: "2024-01-17T14:00:00Z",
-        numberOfParticipants: 15,
-        coachName: "Michael Brown",
-    },
-    {
-        id: "4",
-        sessionId: "319",
-        startTime: "2024-01-18T11:30:00Z",
-        numberOfParticipants: 6,
-        coachName: "Emily Davis",
-    },
-    {
-        id: "5",
-        sessionId: "320",
-        startTime: "2024-01-19T08:45:00Z",
-        numberOfParticipants: 20,
-        coachName: "John Smith",
-    },
-    {
-        id: "6",
-        sessionId: "321",
-        startTime: "2024-01-20T13:00:00Z",
-        numberOfParticipants: 10,
-        coachName: "Sarah Johnson",
-    },
-    {
-        id: "7",
-        sessionId: "322",
-        startTime: "2024-01-21T09:15:00Z",
-        numberOfParticipants: 14,
-        coachName: "Michael Brown",
-    },
-    {
-        id: "8",
-        sessionId: "323",
-        startTime: "2024-01-22T10:30:00Z",
-        numberOfParticipants: 9,
-        coachName: "Emily Davis",
-    },
-    {
-        id: "9",
-        sessionId: "324",
-        startTime: "2024-01-23T15:00:00Z",
-        numberOfParticipants: 18,
-        coachName: "John Smith",
-    },
-    {
-        id: "10",
-        sessionId: "325",
-        startTime: "2024-01-24T09:00:00Z",
-        numberOfParticipants: 7,
-        coachName: "Sarah Johnson",
-    },
-    {
-        id: "11",
-        sessionId: "326",
-        startTime: "2024-01-25T11:00:00Z",
-        numberOfParticipants: 11,
-        coachName: "Michael Brown",
-    },
-    {
-        id: "12",
-        sessionId: "327",
-        startTime: "2024-01-26T14:30:00Z",
-        numberOfParticipants: 16,
-        coachName: "Emily Davis",
-    },
-];
-
 export type Participant = {
     id: string;
     sessionId: string;
     startTime: string;
     numberOfParticipants: number;
     coachName: string;
+};
+
+// JSONPlaceholder API types
+type JsonPlaceholderPost = {
+    userId: number;
+    id: number;
+    title: string;
+    body: string;
+};
+
+type JsonPlaceholderUser = {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
 };
 
 // Mock participants for the session
@@ -587,6 +514,74 @@ export default function AttendeeEditor({ trainingId }: { trainingId: string }) {
     const moduleName = params.moduleName as string;
     const { title, subtitle } = pageConfig[activeNav] || pageConfig.attendees;
 
+    // API data state
+    const [participants, setParticipants] = useState<Participant[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Fetch data from JSONPlaceholder API
+    useEffect(() => {
+        const fetchParticipants = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+
+                // Fetch posts and users in parallel
+                const [postsResponse, usersResponse] = await Promise.all([
+                    fetch(
+                        "https://jsonplaceholder.typicode.com/posts?_limit=12",
+                    ),
+                    fetch("https://jsonplaceholder.typicode.com/users"),
+                ]);
+
+                if (!postsResponse.ok || !usersResponse.ok) {
+                    throw new Error("Failed to fetch data");
+                }
+
+                const posts: JsonPlaceholderPost[] = await postsResponse.json();
+                const users: JsonPlaceholderUser[] = await usersResponse.json();
+
+                // Create a map of user IDs to names
+                const userMap = new Map(
+                    users.map((user) => [user.id, user.name]),
+                );
+
+                // Generate random dates within a range
+                const getRandomDate = (index: number) => {
+                    const baseDate = new Date("2024-01-15");
+                    baseDate.setDate(baseDate.getDate() + index);
+                    const hours = 8 + Math.floor(Math.random() * 8); // 8 AM to 4 PM
+                    const minutes = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, or 45
+                    baseDate.setHours(hours, minutes, 0, 0);
+                    return baseDate.toISOString();
+                };
+
+                // Map posts to Participant structure
+                const mappedParticipants: Participant[] = posts.map(
+                    (post, index) => ({
+                        id: String(post.id),
+                        sessionId: String(315 + post.id),
+                        startTime: getRandomDate(index),
+                        numberOfParticipants:
+                            Math.floor(Math.random() * 20) + 5, // Random count 5-24
+                        coachName:
+                            userMap.get(post.userId) || `Coach ${post.userId}`,
+                    }),
+                );
+
+                setParticipants(mappedParticipants);
+            } catch (err) {
+                setError(
+                    err instanceof Error ? err.message : "An error occurred",
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchParticipants();
+    }, []);
+
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
@@ -602,7 +597,7 @@ export default function AttendeeEditor({ trainingId }: { trainingId: string }) {
     const [rowSelection, setRowSelection] = useState({});
 
     const table = useReactTable({
-        data: participantsData,
+        data: participants,
         columns: participantColumns,
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
@@ -631,6 +626,33 @@ export default function AttendeeEditor({ trainingId }: { trainingId: string }) {
     };
 
     const renderContent = () => {
+        if (isLoading) {
+            return (
+                <div className="w-full flex items-center justify-center py-20">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+                        <p className="text-gray-400">Loading sessions...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                <div className="w-full flex items-center justify-center py-20">
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <p className="text-red-400">Error: {error}</p>
+                        <Button
+                            variant="outline"
+                            onClick={() => window.location.reload()}
+                        >
+                            Retry
+                        </Button>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="w-full">
                 <div className="flex items-center py-4 gap-4">
