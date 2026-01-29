@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
     try {
-        const response = await fetch("http://localhost:8080/attendance");
+        const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
 
         if (!response.ok) {
             throw new Error(`Failed to fetch attendance: ${response.status}`);

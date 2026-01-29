@@ -518,6 +518,7 @@ export default function AttendeeEditor({ trainingId }: { trainingId: string }) {
                 }
 
                 const data = await response.json();
+                console.log({ data });
 
                 // Map API response to Participant structure
                 // Adjust this mapping based on your actual API response structure
