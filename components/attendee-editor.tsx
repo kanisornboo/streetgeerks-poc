@@ -92,21 +92,6 @@ export type Participant = {
     coachName: string;
 };
 
-// JSONPlaceholder API types
-type JsonPlaceholderPost = {
-    userId: number;
-    id: number;
-    title: string;
-    body: string;
-};
-
-type JsonPlaceholderUser = {
-    id: number;
-    name: string;
-    username: string;
-    email: string;
-};
-
 // Mock participants for the session
 const sessionParticipants = [
     { id: "p1", name: "Alice Johnson", email: "alice.johnson@example.com" },
@@ -519,53 +504,40 @@ export default function AttendeeEditor({ trainingId }: { trainingId: string }) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch data from JSONPlaceholder API
+    // Fetch data from attendance API
     useEffect(() => {
         const fetchParticipants = async () => {
             try {
                 setIsLoading(true);
                 setError(null);
 
-                // Fetch posts and users in parallel
-                const [postsResponse, usersResponse] = await Promise.all([
-                    fetch(
-                        "https://jsonplaceholder.typicode.com/posts?_limit=12",
-                    ),
-                    fetch("https://jsonplaceholder.typicode.com/users"),
-                ]);
+                const response = await fetch("/api/attendance");
 
-                if (!postsResponse.ok || !usersResponse.ok) {
-                    throw new Error("Failed to fetch data");
+                if (!response.ok) {
+                    throw new Error("Failed to fetch attendance data");
                 }
 
-                const posts: JsonPlaceholderPost[] = await postsResponse.json();
-                const users: JsonPlaceholderUser[] = await usersResponse.json();
+                const data = await response.json();
 
-                // Create a map of user IDs to names
-                const userMap = new Map(
-                    users.map((user) => [user.id, user.name]),
-                );
-
-                // Generate random dates within a range
-                const getRandomDate = (index: number) => {
-                    const baseDate = new Date("2024-01-15");
-                    baseDate.setDate(baseDate.getDate() + index);
-                    const hours = 8 + Math.floor(Math.random() * 8); // 8 AM to 4 PM
-                    const minutes = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, or 45
-                    baseDate.setHours(hours, minutes, 0, 0);
-                    return baseDate.toISOString();
-                };
-
-                // Map posts to Participant structure
-                const mappedParticipants: Participant[] = posts.map(
-                    (post, index) => ({
-                        id: String(post.id),
-                        sessionId: String(315 + post.id),
-                        startTime: getRandomDate(index),
-                        numberOfParticipants:
-                            Math.floor(Math.random() * 20) + 5, // Random count 5-24
-                        coachName:
-                            userMap.get(post.userId) || `Coach ${post.userId}`,
+                // Map API response to Participant structure
+                // Adjust this mapping based on your actual API response structure
+                const mappedParticipants: Participant[] = data.map(
+                    (
+                        item: {
+                            id?: number | string;
+                            sessionId?: number | string;
+                            startTime?: string;
+                            numberOfParticipants?: number;
+                            coachName?: string;
+                            [key: string]: unknown;
+                        },
+                        index: number,
+                    ) => ({
+                        id: String(item.id ?? index + 1),
+                        sessionId: String(item.sessionId ?? 315 + index),
+                        startTime: item.startTime ?? new Date().toISOString(),
+                        numberOfParticipants: item.numberOfParticipants ?? 0,
+                        coachName: item.coachName ?? "Unknown Coach",
                     }),
                 );
 
