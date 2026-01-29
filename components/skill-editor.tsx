@@ -300,32 +300,27 @@ export default function SkillEditor({ trainingId }: { trainingId: string }) {
                 setError(null);
 
                 // Fetch posts and users in parallel
-                const [postsResponse, usersResponse] = await Promise.all([
-                    fetch(
-                        "https://jsonplaceholder.typicode.com/posts?_limit=25",
-                    ),
-                    fetch("https://jsonplaceholder.typicode.com/users"),
-                ]);
+                // const [postsResponse, usersResponse] = await Promise.all([
+                //     fetch(
+                //         "https://jsonplaceholder.typicode.com/posts?_limit=25",
+                //     ),
+                //     fetch("https://jsonplaceholder.typicode.com/users"),
+                // ]);
 
-                if (!postsResponse.ok || !usersResponse.ok) {
+                const data = await fetch("/api/sessions");
+
+                if (!data.ok) {
                     throw new Error("Failed to fetch data");
                 }
 
-                const posts: JsonPlaceholderPost[] = await postsResponse.json();
-                const users: JsonPlaceholderUser[] = await usersResponse.json();
-
-                // Create a map of user IDs to names
-                const userMap = new Map(
-                    users.map((user) => [user.id, user.name]),
-                );
+                const posts: any = await data.json();
+                // const users: any = await usersResponse.json();
 
                 // Map posts to Lesson structure
-                const mappedLessons: Lesson[] = posts.map((post) => ({
-                    sessionId: String(300 + post.id),
-                    lessonPlan:
-                        post.title.charAt(0).toUpperCase() +
-                        post.title.slice(1),
-                    staffId: userMap.get(post.userId) || `Staff ${post.userId}`,
+                const mappedLessons: Lesson[] = posts.map((post: any) => ({
+                    sessionId: post.session_id,
+                    lessonPlan: post.session_type,
+                    staffId: post.data_source,
                     studentCount: Math.floor(Math.random() * 25) + 10, // Random count 10-34
                 }));
 
