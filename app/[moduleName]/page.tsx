@@ -412,7 +412,7 @@ export default function ModuleDetailPage() {
                                                 module.title
                                                     .toLowerCase()
                                                     .replace(/\s+/g, "-"),
-                                            )}/attendees`,
+                                            )}/attendance`,
                                         )
                                     }
                                 >
@@ -421,10 +421,10 @@ export default function ModuleDetailPage() {
                                             🧑‍🤝‍🧑
                                         </div>
                                         <h3 className="text-xl font-semibold text-white mb-2">
-                                            Attendees
+                                            Attendance
                                         </h3>
                                         <p className="text-gray-400">
-                                            Access the list of attendees for
+                                            Access the list of attendance for
                                             this module
                                         </p>
                                     </div>

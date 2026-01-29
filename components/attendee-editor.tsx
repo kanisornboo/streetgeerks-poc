@@ -22,7 +22,13 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { ArrowLeft, CalendarIcon } from "lucide-react";
+import { ArrowLeft, CalendarIcon, ClipboardCheck } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { Button } from "@/components/ui/button";
 
@@ -62,113 +68,441 @@ import Link from "next/link";
 import { modules } from "@/lib/data";
 import { useParams } from "next/navigation";
 
+// default will be showing as none
+const behaviourNotes = [
+    {
+        value: "none",
+        label: "None",
+    },
+    {
+        value: "excellent",
+        label: "Excellent behavior",
+    },
+    {
+        value: "need engagement",
+        label: "Need engagement",
+    },
+];
+
 // Mock data for participants
 const participantsData: Participant[] = [
     {
         id: "1",
         sessionId: "316",
-        participantName: "Alice Johnson",
-        email: "alice.johnson@example.com",
         startTime: "2024-01-15T09:00:00Z",
-        status: "Present",
+        numberOfParticipants: 12,
+        coachName: "John Smith",
     },
     {
         id: "2",
-        sessionId: "316",
-        participantName: "Bob Smith",
-        email: "bob.smith@example.com",
-        startTime: "2024-01-15T09:05:00Z",
-        status: "Present",
+        sessionId: "317",
+        startTime: "2024-01-16T10:00:00Z",
+        numberOfParticipants: 8,
+        coachName: "Sarah Johnson",
     },
     {
         id: "3",
-        sessionId: "317",
-        participantName: "Carol Williams",
-        email: "carol.williams@example.com",
-        startTime: "2024-01-16T10:00:00Z",
-        status: "Late",
+        sessionId: "318",
+        startTime: "2024-01-17T14:00:00Z",
+        numberOfParticipants: 15,
+        coachName: "Michael Brown",
     },
     {
         id: "4",
-        sessionId: "318",
-        participantName: "David Brown",
-        email: "david.brown@example.com",
-        startTime: "2024-01-17T14:00:00Z",
-        status: "Present",
+        sessionId: "319",
+        startTime: "2024-01-18T11:30:00Z",
+        numberOfParticipants: 6,
+        coachName: "Emily Davis",
     },
     {
         id: "5",
-        sessionId: "319",
-        participantName: "Emily Davis",
-        email: "emily.davis@example.com",
-        startTime: "2024-01-18T11:30:00Z",
-        status: "Absent",
+        sessionId: "320",
+        startTime: "2024-01-19T08:45:00Z",
+        numberOfParticipants: 20,
+        coachName: "John Smith",
     },
     {
         id: "6",
-        sessionId: "320",
-        participantName: "Frank Miller",
-        email: "frank.miller@example.com",
-        startTime: "2024-01-19T08:45:00Z",
-        status: "Present",
+        sessionId: "321",
+        startTime: "2024-01-20T13:00:00Z",
+        numberOfParticipants: 10,
+        coachName: "Sarah Johnson",
     },
     {
         id: "7",
-        sessionId: "321",
-        participantName: "Grace Wilson",
-        email: "grace.wilson@example.com",
-        startTime: "2024-01-20T13:00:00Z",
-        status: "Present",
+        sessionId: "322",
+        startTime: "2024-01-21T09:15:00Z",
+        numberOfParticipants: 14,
+        coachName: "Michael Brown",
     },
     {
         id: "8",
-        sessionId: "322",
-        participantName: "Henry Taylor",
-        email: "henry.taylor@example.com",
-        startTime: "2024-01-21T09:15:00Z",
-        status: "Late",
+        sessionId: "323",
+        startTime: "2024-01-22T10:30:00Z",
+        numberOfParticipants: 9,
+        coachName: "Emily Davis",
     },
     {
         id: "9",
-        sessionId: "323",
-        participantName: "Ivy Anderson",
-        email: "ivy.anderson@example.com",
-        startTime: "2024-01-22T10:30:00Z",
-        status: "Present",
+        sessionId: "324",
+        startTime: "2024-01-23T15:00:00Z",
+        numberOfParticipants: 18,
+        coachName: "John Smith",
     },
     {
         id: "10",
-        sessionId: "324",
-        participantName: "Jack Thomas",
-        email: "jack.thomas@example.com",
-        startTime: "2024-01-23T15:00:00Z",
-        status: "Present",
+        sessionId: "325",
+        startTime: "2024-01-24T09:00:00Z",
+        numberOfParticipants: 7,
+        coachName: "Sarah Johnson",
     },
     {
         id: "11",
-        sessionId: "325",
-        participantName: "Karen Jackson",
-        email: "karen.jackson@example.com",
-        startTime: "2024-01-24T09:00:00Z",
-        status: "Absent",
+        sessionId: "326",
+        startTime: "2024-01-25T11:00:00Z",
+        numberOfParticipants: 11,
+        coachName: "Michael Brown",
     },
     {
         id: "12",
-        sessionId: "326",
-        participantName: "Leo White",
-        email: "leo.white@example.com",
-        startTime: "2024-01-25T11:00:00Z",
-        status: "Present",
+        sessionId: "327",
+        startTime: "2024-01-26T14:30:00Z",
+        numberOfParticipants: 16,
+        coachName: "Emily Davis",
     },
 ];
 
 export type Participant = {
     id: string;
     sessionId: string;
-    participantName: string;
-    email: string;
     startTime: string;
-    status: "Present" | "Late" | "Absent";
+    numberOfParticipants: number;
+    coachName: string;
+};
+
+// Mock participants for the session
+const sessionParticipants = [
+    { id: "p1", name: "Alice Johnson", email: "alice.johnson@example.com" },
+    { id: "p2", name: "Bob Smith", email: "bob.smith@example.com" },
+    { id: "p3", name: "Carol Williams", email: "carol.williams@example.com" },
+    { id: "p4", name: "David Brown", email: "david.brown@example.com" },
+    { id: "p5", name: "Emily Davis", email: "emily.davis@example.com" },
+    { id: "p6", name: "Frank Miller", email: "frank.miller@example.com" },
+];
+
+const participantLevels = [
+    { value: "engaged", label: "Engaged" },
+    { value: "part engaged", label: "Part Engaged" },
+];
+
+const behaviorNoteOptions = [
+    { value: "excellent", label: "Excellent Behavior" },
+    { value: "good", label: "Good Behavior" },
+    { value: "satisfactory", label: "Satisfactory" },
+    { value: "needs-improvement", label: "Needs Improvement" },
+    { value: "disruptive", label: "Disruptive" },
+];
+
+type ParticipantMark = {
+    id: string;
+    selected: boolean;
+    level: string;
+    behaviorNotes: string;
+};
+
+type BehaviorNote = {
+    value: string;
+    label: string;
+};
+
+// Mark Modal Component
+const MarkModal = ({
+    isOpen,
+    onClose,
+    sessionId,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    sessionId: string;
+}) => {
+    const [participantMarks, setParticipantMarks] = useState<ParticipantMark[]>(
+        sessionParticipants.map((p) => ({
+            id: p.id,
+            selected: false,
+            level: "",
+            behaviorNotes: "none",
+        })),
+    );
+
+    const handleSelectChange = (id: string, checked: boolean) => {
+        setParticipantMarks((prev) =>
+            prev.map((p) => (p.id === id ? { ...p, selected: checked } : p)),
+        );
+    };
+
+    const handleLevelChange = (id: string, level: string) => {
+        setParticipantMarks((prev) =>
+            prev.map((p) => (p.id === id ? { ...p, level } : p)),
+        );
+    };
+
+    const handleNotesChange = (id: string, behaviorNotes: string) => {
+        setParticipantMarks((prev) =>
+            prev.map((p) => (p.id === id ? { ...p, behaviorNotes } : p)),
+        );
+    };
+
+    const handleSelectAll = () => {
+        const allSelected = participantMarks.every((p) => p.selected);
+        setParticipantMarks((prev) =>
+            prev.map((p) => ({ ...p, selected: !allSelected })),
+        );
+    };
+
+    const handleSave = () => {
+        const selectedParticipants = participantMarks.filter((p) => p.selected);
+        console.log(
+            "Saving marks for session:",
+            sessionId,
+            selectedParticipants,
+        );
+        // TODO: Call API to save marks
+        handleCancel();
+    };
+
+    const handleCancel = () => {
+        setParticipantMarks(
+            sessionParticipants.map((p) => ({
+                id: p.id,
+                selected: false,
+                level: "",
+                behaviorNotes: "none",
+            })),
+        );
+        onClose();
+    };
+
+    const selectedCount = participantMarks.filter((p) => p.selected).length;
+    const allSelected = participantMarks.every((p) => p.selected);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={handleCancel}>
+            <DialogContent className="bg-gray-900 border-white/10 max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+                <DialogHeader>
+                    <DialogTitle className="text-white">
+                        Mark Session {sessionId}
+                    </DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                        Mark attendance and record participant levels for this
+                        session
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="flex-1 overflow-auto">
+                    <div className="rounded-md border border-white/10">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="border-white/10 hover:bg-transparent">
+                                    <TableHead className="w-12">
+                                        <input
+                                            type="checkbox"
+                                            checked={allSelected}
+                                            onChange={handleSelectAll}
+                                            className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-gray-800"
+                                        />
+                                    </TableHead>
+                                    <TableHead className="text-gray-300">
+                                        Participant
+                                    </TableHead>
+                                    <TableHead className="text-gray-300 w-40">
+                                        Level
+                                    </TableHead>
+                                    <TableHead className="text-gray-300">
+                                        Behavior Notes
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sessionParticipants.map((participant) => {
+                                    const mark = participantMarks.find(
+                                        (p) => p.id === participant.id,
+                                    );
+                                    return (
+                                        <TableRow
+                                            key={participant.id}
+                                            className="border-white/10"
+                                        >
+                                            <TableCell>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        mark?.selected ?? false
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleSelectChange(
+                                                            participant.id,
+                                                            e.target.checked,
+                                                        )
+                                                    }
+                                                    className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-gray-800"
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <div>
+                                                    <p className="text-white font-medium">
+                                                        {participant.name}
+                                                    </p>
+                                                    <p className="text-gray-400 text-sm">
+                                                        {participant.email}
+                                                    </p>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <select
+                                                    value={mark?.level ?? ""}
+                                                    onChange={(e) =>
+                                                        handleLevelChange(
+                                                            participant.id,
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="w-full h-9 rounded-md border bg-gray-800 border-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                >
+                                                    <option
+                                                        value=""
+                                                        className="text-gray-500"
+                                                    >
+                                                        Select level
+                                                    </option>
+                                                    {participantLevels.map(
+                                                        (level) => (
+                                                            <option
+                                                                key={
+                                                                    level.value
+                                                                }
+                                                                value={
+                                                                    level.value
+                                                                }
+                                                            >
+                                                                {level.label}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <select
+                                                    value={
+                                                        mark?.behaviorNotes ??
+                                                        ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleNotesChange(
+                                                            participant.id,
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="w-full h-9 rounded-md border bg-gray-800 border-white/10 px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                                >
+                                                    <option
+                                                        value=""
+                                                        className="text-gray-500"
+                                                    >
+                                                        Select behavior
+                                                    </option>
+                                                    {behaviourNotes.map(
+                                                        (note) => (
+                                                            <option
+                                                                key={note.value}
+                                                                value={
+                                                                    note.value
+                                                                }
+                                                            >
+                                                                {note.label}
+                                                            </option>
+                                                        ),
+                                                    )}
+                                                </select>
+
+                                                {/* <Input
+                                                    value={
+                                                        mark?.behaviorNotes ??
+                                                        ""
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleNotesChange(
+                                                            participant.id,
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Enter behavior notes..."
+                                                    className="bg-gray-800 border-white/10 text-white placeholder:text-gray-500"
+                                                /> */}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </div>
+
+                <DialogFooter className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+                    <p className="text-sm text-gray-400">
+                        {selectedCount} participant
+                        {selectedCount !== 1 ? "s" : ""} selected
+                    </p>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleCancel}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            disabled={selectedCount === 0}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                            Save Selected
+                        </Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+// Action Cell Component with Mark button
+const ActionCell = ({ sessionId }: { sessionId: string }) => {
+    const [isMarkModalOpen, setIsMarkModalOpen] = useState(false);
+
+    return (
+        <>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            size="sm"
+                            onClick={() => setIsMarkModalOpen(true)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 font-medium shadow-sm"
+                        >
+                            <ClipboardCheck className="h-4 w-4" />
+                            Mark Attendance
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>
+                            Click to mark participant attendance for this
+                            session
+                        </p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            <MarkModal
+                isOpen={isMarkModalOpen}
+                onClose={() => setIsMarkModalOpen(false)}
+                sessionId={sessionId}
+            />
+        </>
+    );
 };
 
 export const participantColumns: ColumnDef<Participant>[] = [
@@ -186,26 +520,6 @@ export const participantColumns: ColumnDef<Participant>[] = [
             </Button>
         ),
         cell: ({ row }) => <span>{row.getValue("sessionId")}</span>,
-    },
-    {
-        accessorKey: "participantName",
-        header: ({ column }) => (
-            <Button
-                variant="link"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === "asc")
-                }
-            >
-                Participant Name
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-        ),
-        cell: ({ row }) => <span>{row.getValue("participantName")}</span>,
-    },
-    {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => <span>{row.getValue("email")}</span>,
     },
     {
         accessorKey: "startTime",
@@ -226,28 +540,44 @@ export const participantColumns: ColumnDef<Participant>[] = [
         },
     },
     {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => {
-            const status = row.getValue("status") as string;
-            const statusColors: Record<string, string> = {
-                Present: "bg-green-500/20 text-green-400",
-                Late: "bg-yellow-500/20 text-yellow-400",
-                Absent: "bg-red-500/20 text-red-400",
-            };
-            return (
-                <span
-                    className={`px-2 py-1 rounded-full text-xs ${statusColors[status]}`}
-                >
-                    {status}
-                </span>
-            );
-        },
+        accessorKey: "numberOfParticipants",
+        header: ({ column }) => (
+            <Button
+                variant="link"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }
+            >
+                No. of Participants
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => <span>{row.getValue("numberOfParticipants")}</span>,
+    },
+    {
+        accessorKey: "coachName",
+        header: ({ column }) => (
+            <Button
+                variant="link"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }
+            >
+                Coach Name
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
+        cell: ({ row }) => <span>{row.getValue("coachName")}</span>,
+    },
+    {
+        id: "actions",
+        header: "Action",
+        cell: ({ row }) => <ActionCell sessionId={row.getValue("sessionId")} />,
     },
 ];
 
 const pageConfig: Record<string, { title: string; subtitle: string }> = {
-    attendees: { title: "Attendees", subtitle: "Manage session participants" },
+    attendees: { title: "Attendance", subtitle: "Manage session participants" },
 };
 
 export default function AttendeeEditor({ trainingId }: { trainingId: string }) {
@@ -320,15 +650,15 @@ export default function AttendeeEditor({ trainingId }: { trainingId: string }) {
                     />
 
                     <Input
-                        placeholder="Filter by participant name..."
+                        placeholder="Filter by coach name..."
                         value={
                             (table
-                                .getColumn("participantName")
+                                .getColumn("coachName")
                                 ?.getFilterValue() as string) ?? ""
                         }
                         onChange={(event) =>
                             table
-                                .getColumn("participantName")
+                                .getColumn("coachName")
                                 ?.setFilterValue(event.target.value)
                         }
                         className="max-w-sm"
@@ -528,6 +858,18 @@ const attendeeSchema = z.object({
 
 type AttendeeFormData = z.infer<typeof attendeeSchema>;
 
+// Mock list of available attendees to select from
+const availableAttendees = [
+    { id: "a1", name: "John Doe", email: "john.doe@example.com" },
+    { id: "a2", name: "Jane Smith", email: "jane.smith@example.com" },
+    { id: "a3", name: "Michael Brown", email: "michael.brown@example.com" },
+    { id: "a4", name: "Sarah Wilson", email: "sarah.wilson@example.com" },
+    { id: "a5", name: "David Lee", email: "david.lee@example.com" },
+    { id: "a6", name: "Emma Johnson", email: "emma.johnson@example.com" },
+    { id: "a7", name: "Chris Taylor", email: "chris.taylor@example.com" },
+    { id: "a8", name: "Lisa Anderson", email: "lisa.anderson@example.com" },
+];
+
 const AttendeeDialog = ({
     isOpen,
     onClose,
@@ -535,42 +877,84 @@ const AttendeeDialog = ({
     isOpen: boolean;
     onClose: () => void;
 }) => {
-    const {
-        register,
-        handleSubmit,
-        control,
-        formState: { errors },
-        reset,
-    } = useForm<AttendeeFormData>({
-        resolver: zodResolver(attendeeSchema),
-    });
+    const [selectedAttendees, setSelectedAttendees] = useState<string[]>([]);
+    const [sessionId, setSessionId] = useState("");
+    const [startTime, setStartTime] = useState<Date>();
+    const [status, setStatus] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState("");
 
-    const onSubmit = (data: AttendeeFormData) => {
-        console.log("Attendee data:", data);
-        // TODO: Call API to create new attendee
-        reset();
-        onClose();
+    const filteredAttendees = availableAttendees.filter(
+        (attendee) =>
+            attendee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            attendee.email.toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+
+    const handleToggleAttendee = (id: string) => {
+        setSelectedAttendees((prev) =>
+            prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedAttendees.length === filteredAttendees.length) {
+            setSelectedAttendees([]);
+        } else {
+            setSelectedAttendees(filteredAttendees.map((a) => a.id));
+        }
+    };
+
+    const handleSubmit = () => {
+        if (
+            !sessionId ||
+            !startTime ||
+            !status ||
+            selectedAttendees.length === 0
+        ) {
+            return;
+        }
+
+        const selectedData = availableAttendees
+            .filter((a) => selectedAttendees.includes(a.id))
+            .map((attendee) => ({
+                sessionId,
+                participantName: attendee.name,
+                email: attendee.email,
+                startTime: startTime.toISOString(),
+                status,
+            }));
+
+        console.log("Adding attendees:", selectedData);
+        // TODO: Call API to add selected attendees
+        handleCancel();
     };
 
     const handleCancel = () => {
-        reset();
+        setSelectedAttendees([]);
+        setSessionId("");
+        setStartTime(undefined);
+        setStatus("");
+        setSearchQuery("");
         onClose();
     };
 
+    const isFormValid =
+        sessionId && startTime && status && selectedAttendees.length > 0;
+
     return (
         <Dialog open={isOpen} onOpenChange={handleCancel}>
-            <DialogContent className="bg-gray-900 border-white/10">
+            <DialogContent className="bg-gray-900 border-white/10 max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-white">
-                        Add New Attendee
+                        Add Attendees
                     </DialogTitle>
                     <DialogDescription className="text-gray-400">
-                        Register a participant for a session
+                        Select participants to add to a session
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit(onSubmit)}>
-                    <div className="grid grid-cols-1 gap-4 mt-4">
+                <div className="grid grid-cols-1 gap-4 mt-4">
+                    {/* Session Details */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                             <Label
                                 htmlFor="sessionId"
@@ -580,102 +964,11 @@ const AttendeeDialog = ({
                             </Label>
                             <Input
                                 id="sessionId"
-                                {...register("sessionId")}
+                                value={sessionId}
+                                onChange={(e) => setSessionId(e.target.value)}
                                 placeholder="Enter session ID"
                                 className="bg-gray-800 border-white/10 text-white placeholder:text-gray-500"
                             />
-                            {errors.sessionId && (
-                                <p className="text-red-500 text-sm">
-                                    {errors.sessionId.message}
-                                </p>
-                            )}
-                        </div>
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor="participantName"
-                                className="text-gray-300"
-                            >
-                                Participant Name
-                            </Label>
-                            <Input
-                                id="participantName"
-                                {...register("participantName")}
-                                placeholder="Enter participant name"
-                                className="bg-gray-800 border-white/10 text-white placeholder:text-gray-500"
-                            />
-                            {errors.participantName && (
-                                <p className="text-red-500 text-sm">
-                                    {errors.participantName.message}
-                                </p>
-                            )}
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email" className="text-gray-300">
-                                Email
-                            </Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                {...register("email")}
-                                placeholder="Enter email address"
-                                className="bg-gray-800 border-white/10 text-white placeholder:text-gray-500"
-                            />
-                            {errors.email && (
-                                <p className="text-red-500 text-sm">
-                                    {errors.email.message}
-                                </p>
-                            )}
-                        </div>
-                        <div className="grid gap-2">
-                            <Label
-                                htmlFor="startTime"
-                                className="text-gray-300"
-                            >
-                                Start Time
-                            </Label>
-                            <Controller
-                                name="startTime"
-                                control={control}
-                                render={({ field }) => (
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className={cn(
-                                                    "w-full justify-between bg-gray-800 border-white/10 text-white placeholder:text-gray-500",
-                                                    !field.value &&
-                                                        "text-gray-500",
-                                                )}
-                                            >
-                                                {field.value ? (
-                                                    format(field.value, "PPP p")
-                                                ) : (
-                                                    <span className="text-gray-500">
-                                                        Pick a date and time
-                                                    </span>
-                                                )}
-                                                <CalendarIcon className="ml-2 h-4 w-4" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                            className="w-auto p-0"
-                                            align="start"
-                                        >
-                                            <Calendar
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={field.onChange}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                )}
-                            />
-                            {errors.startTime && (
-                                <p className="text-red-500 text-sm">
-                                    {errors.startTime.message}
-                                </p>
-                            )}
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="status" className="text-gray-300">
@@ -683,7 +976,8 @@ const AttendeeDialog = ({
                             </Label>
                             <select
                                 id="status"
-                                {...register("status")}
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
                                 className="flex h-10 w-full rounded-md border bg-gray-800 border-white/10 px-3 py-2 text-sm text-white ring-offset-background placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             >
                                 <option value="" className="text-gray-500">
@@ -693,25 +987,135 @@ const AttendeeDialog = ({
                                 <option value="Late">Late</option>
                                 <option value="Absent">Absent</option>
                             </select>
-                            {errors.status && (
-                                <p className="text-red-500 text-sm">
-                                    {errors.status.message}
-                                </p>
-                            )}
                         </div>
                     </div>
 
-                    <DialogFooter className="mt-6">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleCancel}
-                        >
-                            Cancel
-                        </Button>
-                        <Button type="submit">Add Attendee</Button>
-                    </DialogFooter>
-                </form>
+                    <div className="grid gap-2">
+                        <Label htmlFor="startTime" className="text-gray-300">
+                            Start Time
+                        </Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full justify-between bg-gray-800 border-white/10 text-white placeholder:text-gray-500",
+                                        !startTime && "text-gray-500",
+                                    )}
+                                >
+                                    {startTime ? (
+                                        format(startTime, "PPP p")
+                                    ) : (
+                                        <span className="text-gray-500">
+                                            Pick a date and time
+                                        </span>
+                                    )}
+                                    <CalendarIcon className="ml-2 h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                            >
+                                <Calendar
+                                    mode="single"
+                                    selected={startTime}
+                                    onSelect={setStartTime}
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    {/* Attendee List */}
+                    <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-gray-300">
+                                Select Attendees ({selectedAttendees.length}{" "}
+                                selected)
+                            </Label>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleSelectAll}
+                                className="text-gray-400 hover:text-white"
+                            >
+                                {selectedAttendees.length ===
+                                filteredAttendees.length
+                                    ? "Deselect All"
+                                    : "Select All"}
+                            </Button>
+                        </div>
+                        <Input
+                            placeholder="Search attendees..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-gray-800 border-white/10 text-white placeholder:text-gray-500"
+                        />
+                        <div className="max-h-64 overflow-y-auto rounded-md border border-white/10 bg-gray-800">
+                            {filteredAttendees.length === 0 ? (
+                                <div className="p-4 text-center text-gray-500">
+                                    No attendees found
+                                </div>
+                            ) : (
+                                filteredAttendees.map((attendee) => (
+                                    <label
+                                        key={attendee.id}
+                                        className={cn(
+                                            "flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-700 border-b border-white/5 last:border-0",
+                                            selectedAttendees.includes(
+                                                attendee.id,
+                                            ) && "bg-gray-700/50",
+                                        )}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedAttendees.includes(
+                                                attendee.id,
+                                            )}
+                                            onChange={() =>
+                                                handleToggleAttendee(
+                                                    attendee.id,
+                                                )
+                                            }
+                                            className="h-4 w-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-800"
+                                        />
+                                        <div className="flex-1">
+                                            <p className="text-white font-medium">
+                                                {attendee.name}
+                                            </p>
+                                            <p className="text-gray-400 text-sm">
+                                                {attendee.email}
+                                            </p>
+                                        </div>
+                                    </label>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter className="mt-6">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCancel}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={!isFormValid}
+                    >
+                        Add{" "}
+                        {selectedAttendees.length > 0
+                            ? `${selectedAttendees.length} `
+                            : ""}
+                        Attendee{selectedAttendees.length !== 1 ? "s" : ""}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
