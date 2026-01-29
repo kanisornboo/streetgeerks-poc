@@ -171,14 +171,24 @@ const MarkModal = ({
         );
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const selectedParticipants = participantMarks.filter((p) => p.selected);
-        console.log(
-            "Saving marks for session:",
-            sessionId,
-            selectedParticipants,
-        );
-        // TODO: Call API to save marks
+
+        // Call POST for each selected participant
+        for (const participant of selectedParticipants) {
+            await fetch("/api/attendance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    sessionId,
+                    participantId: participant.id,
+                    level: participant.level,
+                    behaviorNotes: participant.behaviorNotes,
+                }),
+            });
+        }
+
+        debugger;
         handleCancel();
     };
 
