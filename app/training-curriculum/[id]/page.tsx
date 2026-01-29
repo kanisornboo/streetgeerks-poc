@@ -1,3 +1,4 @@
+import AttendeeEditor from "@/components/attendee-editor";
 import SessionEditor from "@/components/skill-editor";
 
 export default async function Page({
@@ -32,13 +33,11 @@ export default async function Page({
     return (
         <div className="p-8">
             {/* <h1 className="text-xl mb-4">Editing Training: {id}</h1> */}
-            {id === "online-training" && (
+            {id === "online-tutorials" && (
                 <TrainingComponent training={mockTrainingData} />
             )}
             {id === "sessions" && <SessionEditor trainingId={id} />}
-            {id !== "online-training" && id !== "sessions" && (
-                <AttendeeComponent attendee={{} as any} />
-            )}
+            {id === "attendees" && <AttendeeEditor trainingId={id} />}
         </div>
     );
 }
@@ -47,6 +46,7 @@ const AttendeeComponent = ({ attendee }: { attendee: any }) => {
     return (
         <div className="p-4 border rounded mb-2">
             <h3 className="text-lg font-semibold">{attendee.name}</h3>
+            Attendees
             <p>Email: {attendee.email}</p>
             <p>
                 Registered on:{" "}

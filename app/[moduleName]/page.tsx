@@ -386,7 +386,7 @@ export default function ModuleDetailPage() {
                                                 module.title
                                                     .toLowerCase()
                                                     .replace(/\s+/g, "-"),
-                                            )}/online-training`,
+                                            )}/online-tutorials`,
                                         )
                                     }
                                 >
@@ -395,11 +395,37 @@ export default function ModuleDetailPage() {
                                             💻
                                         </div>
                                         <h3 className="text-xl font-semibold text-white mb-2">
-                                            Online Training
+                                            Online Tutorials
                                         </h3>
                                         <p className="text-gray-400">
                                             Access online courses and virtual
                                             learning modules
+                                        </p>
+                                    </div>
+                                </Card>
+
+                                <Card
+                                    className="p-8 bg-gray-900 border-white/10 cursor-pointer hover:bg-gray-800 transition-colors group"
+                                    onClick={() =>
+                                        router.push(
+                                            `/${encodeURIComponent(
+                                                module.title
+                                                    .toLowerCase()
+                                                    .replace(/\s+/g, "-"),
+                                            )}/attendees`,
+                                        )
+                                    }
+                                >
+                                    <div className="text-center">
+                                        <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">
+                                            🧑‍🤝‍🧑
+                                        </div>
+                                        <h3 className="text-xl font-semibold text-white mb-2">
+                                            Attendees
+                                        </h3>
+                                        <p className="text-gray-400">
+                                            Access the list of attendees for
+                                            this module
                                         </p>
                                     </div>
                                 </Card>
