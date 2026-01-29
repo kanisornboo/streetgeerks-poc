@@ -16,7 +16,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { modules, users } from "@/lib/data";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
@@ -24,8 +24,30 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import type { User } from "@/types";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { modules } from "@/lib/data";
+
+// API response type from localhost:8080/user
+type ApiUser = {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+    address?: {
+        street: string;
+        suite: string;
+        city: string;
+        zipcode: string;
+    };
+    phone?: string;
+    website?: string;
+    company?: {
+        name: string;
+        catchPhrase: string;
+        bs: string;
+    };
+};
 
 const pageConfig: Record<string, { title: string; subtitle: string }> = {
     dashboard: {
@@ -57,6 +79,60 @@ export default function ModuleDetailPage() {
 
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [activeNav, setActiveNav] = useState("dashboard");
+
+    // API data state
+    const [users, setUsers] = useState<User[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Fetch users from API
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+
+                const response = await fetch("http://localhost:8080/user");
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch users");
+                }
+
+                const apiUsers: ApiUser[] = await response.json();
+
+                // Map API response to User structure
+                const roles: User["role"][] = [
+                    "Admin",
+                    "Manager",
+                    "Staff",
+                    "User",
+                ];
+                const statuses: User["status"][] = [
+                    "Active",
+                    "Invited",
+                    "Suspended",
+                ];
+
+                const mappedUsers: User[] = apiUsers.map((apiUser) => ({
+                    id: String(apiUser.id),
+                    name: apiUser.name,
+                    email: apiUser.email,
+                    role: roles[apiUser.id % roles.length], // Assign role based on id
+                    status: statuses[apiUser.id % 3 === 0 ? 2 : apiUser.id % 2], // Vary status
+                }));
+
+                setUsers(mappedUsers);
+            } catch (err) {
+                setError(
+                    err instanceof Error ? err.message : "An error occurred",
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, []);
 
     const { title, subtitle } = pageConfig[activeNav] || pageConfig.dashboard;
 
@@ -128,110 +204,121 @@ export default function ModuleDetailPage() {
 
                 <div className="px-8 py-8">
                     {module.id === "user-mgmt" ? (
-                        <div>
-                            <div className="grid grid-cols-4 gap-6 mb-8">
-                                <Card className="p-6 bg-gray-900 border-white/10">
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Total Users
+                        isLoading ? (
+                            <div className="flex items-center justify-center py-20">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+                                    <p className="text-gray-400">
+                                        Loading users...
                                     </p>
-                                    <p className="text-3xl font-bold text-white">
-                                        {module.stats.total}
-                                    </p>
-                                </Card>
-                                <Card className="p-6 bg-gray-900 border-white/10">
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Active Users
-                                    </p>
-                                    <p className="text-3xl font-bold text-white">
-                                        {module.stats.active}
-                                    </p>
-                                </Card>
-                                <Card className="p-6 bg-gray-900 border-white/10">
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Inactive Users
-                                    </p>
-                                    <p className="text-3xl font-bold text-white">
-                                        {(module.stats.total as number) -
-                                            (module.stats.active as number)}
-                                    </p>
-                                </Card>
-                                <Card className="p-6 bg-gray-900 border-white/10">
-                                    <p className="text-gray-400 text-sm mb-2">
-                                        Active Rate
-                                    </p>
-                                    <p className="text-3xl font-bold text-white">
-                                        {(
-                                            ((module.stats.active as number) /
-                                                (module.stats
-                                                    .total as number)) *
-                                            100
-                                        ).toFixed(1)}
-                                        %
-                                    </p>
-                                </Card>
+                                </div>
                             </div>
-
-                            {/* Filters */}
-                            <Card className="p-6 bg-gray-900 border-white/10 mb-8">
-                                <h2 className="text-lg font-semibold text-white mb-4">
-                                    Filters
-                                </h2>
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-2">
-                                            Search by Name or Email
-                                        </label>
-                                        <Input
-                                            placeholder="Type name or email..."
-                                            value={searchQuery}
-                                            onChange={(e) =>
-                                                setSearchQuery(e.target.value)
+                        ) : error ? (
+                            <div className="flex items-center justify-center py-20">
+                                <div className="flex flex-col items-center gap-4 text-center">
+                                    <p className="text-red-400">
+                                        Error: {error}
+                                    </p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => window.location.reload()}
+                                    >
+                                        Retry
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="grid grid-cols-4 gap-6 mb-8">
+                                    <Card className="p-6 bg-gray-900 border-white/10">
+                                        <p className="text-gray-400 text-sm mb-2">
+                                            Total Users
+                                        </p>
+                                        <p className="text-3xl font-bold text-white">
+                                            {users.length}
+                                        </p>
+                                    </Card>
+                                    <Card className="p-6 bg-gray-900 border-white/10">
+                                        <p className="text-gray-400 text-sm mb-2">
+                                            Active Users
+                                        </p>
+                                        <p className="text-3xl font-bold text-white">
+                                            {
+                                                users.filter(
+                                                    (u) =>
+                                                        u.status === "Active",
+                                                ).length
                                             }
-                                            className="bg-gray-800 border-white/10 text-white placeholder:text-gray-500"
-                                        />
-                                    </div>
+                                        </p>
+                                    </Card>
+                                    <Card className="p-6 bg-gray-900 border-white/10">
+                                        <p className="text-gray-400 text-sm mb-2">
+                                            Inactive Users
+                                        </p>
+                                        <p className="text-3xl font-bold text-white">
+                                            {
+                                                users.filter(
+                                                    (u) =>
+                                                        u.status !== "Active",
+                                                ).length
+                                            }
+                                        </p>
+                                    </Card>
+                                    <Card className="p-6 bg-gray-900 border-white/10">
+                                        <p className="text-gray-400 text-sm mb-2">
+                                            Active Rate
+                                        </p>
+                                        <p className="text-3xl font-bold text-white">
+                                            {users.length > 0
+                                                ? (
+                                                      (users.filter(
+                                                          (u) =>
+                                                              u.status ===
+                                                              "Active",
+                                                      ).length /
+                                                          users.length) *
+                                                      100
+                                                  ).toFixed(1)
+                                                : 0}
+                                            %
+                                        </p>
+                                    </Card>
+                                </div>
 
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-3">
-                                            Filter by Role
-                                        </label>
-                                        <div className="flex flex-wrap gap-3">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                                <input
-                                                    type="radio"
-                                                    name="role"
-                                                    value=""
-                                                    checked={
-                                                        selectedRole === ""
-                                                    }
-                                                    onChange={(e) =>
-                                                        setSelectedRole(
-                                                            e.target.value,
-                                                        )
-                                                    }
-                                                    className="w-4 h-4"
-                                                />
-                                                <span className="text-gray-300">
-                                                    All Roles
-                                                </span>
+                                {/* Filters */}
+                                <Card className="p-6 bg-gray-900 border-white/10 mb-8">
+                                    <h2 className="text-lg font-semibold text-white mb-4">
+                                        Filters
+                                    </h2>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-2">
+                                                Search by Name or Email
                                             </label>
-                                            {[
-                                                "Admin",
-                                                "Manager",
-                                                "Staff",
-                                                "User",
-                                            ].map((role) => (
-                                                <label
-                                                    key={role}
-                                                    className="flex items-center gap-2 cursor-pointer"
-                                                >
+                                            <Input
+                                                placeholder="Type name or email..."
+                                                value={searchQuery}
+                                                onChange={(e) =>
+                                                    setSearchQuery(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="bg-gray-800 border-white/10 text-white placeholder:text-gray-500"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-3">
+                                                Filter by Role
+                                            </label>
+                                            <div className="flex flex-wrap gap-3">
+                                                <label className="flex items-center gap-2 cursor-pointer">
                                                     <input
                                                         type="radio"
                                                         name="role"
-                                                        value={role}
+                                                        value=""
                                                         checked={
-                                                            selectedRole ===
-                                                            role
+                                                            selectedRole === ""
                                                         }
                                                         onChange={(e) =>
                                                             setSelectedRole(
@@ -241,110 +328,143 @@ export default function ModuleDetailPage() {
                                                         className="w-4 h-4"
                                                     />
                                                     <span className="text-gray-300">
-                                                        {role}
+                                                        All Roles
                                                     </span>
                                                 </label>
-                                            ))}
+                                                {[
+                                                    "Admin",
+                                                    "Manager",
+                                                    "Staff",
+                                                    "User",
+                                                ].map((role) => (
+                                                    <label
+                                                        key={role}
+                                                        className="flex items-center gap-2 cursor-pointer"
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name="role"
+                                                            value={role}
+                                                            checked={
+                                                                selectedRole ===
+                                                                role
+                                                            }
+                                                            onChange={(e) =>
+                                                                setSelectedRole(
+                                                                    e.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className="w-4 h-4"
+                                                        />
+                                                        <span className="text-gray-300">
+                                                            {role}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm text-gray-400 mb-3">
+                                                Filter by Status
+                                            </label>
+                                            <Select
+                                                key={selectedStatus}
+                                                value={selectedStatus}
+                                                onValueChange={
+                                                    setSelectedStatus
+                                                }
+                                            >
+                                                <SelectTrigger className="bg-gray-800 border-white/10 text-white">
+                                                    <SelectValue placeholder="All Status" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-gray-800 border-white/10">
+                                                    <SelectItem value=" All Status">
+                                                        All Status
+                                                    </SelectItem>
+                                                    <SelectItem value="Active">
+                                                        Active
+                                                    </SelectItem>
+                                                    <SelectItem value="Invited">
+                                                        Invited
+                                                    </SelectItem>
+                                                    <SelectItem value="Suspended">
+                                                        Suspended
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
                                     </div>
+                                </Card>
 
-                                    <div>
-                                        <label className="block text-sm text-gray-400 mb-3">
-                                            Filter by Status
-                                        </label>
-                                        <Select
-                                            key={selectedStatus}
-                                            value={selectedStatus}
-                                            onValueChange={setSelectedStatus}
-                                        >
-                                            <SelectTrigger className="bg-gray-800 border-white/10 text-white">
-                                                <SelectValue placeholder="All Status" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-gray-800 border-white/10">
-                                                <SelectItem value=" All Status">
-                                                    All Status
-                                                </SelectItem>
-                                                <SelectItem value="Active">
-                                                    Active
-                                                </SelectItem>
-                                                <SelectItem value="Invited">
-                                                    Invited
-                                                </SelectItem>
-                                                <SelectItem value="Suspended">
-                                                    Suspended
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </Card>
-
-                            <Card className="bg-gray-900 border-white/10 overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader className="bg-gray-800/50">
-                                            <TableRow className="border-white/5">
-                                                <TableHead className="text-gray-400">
-                                                    Name
-                                                </TableHead>
-                                                <TableHead className="text-gray-400">
-                                                    Email
-                                                </TableHead>
-                                                <TableHead className="text-gray-400">
-                                                    Role
-                                                </TableHead>
-                                                <TableHead className="text-gray-400">
-                                                    Status
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredUsers.map((user) => (
-                                                <TableRow
-                                                    key={user.id}
-                                                    className="border-white/5 hover:bg-gray-800/50"
-                                                >
-                                                    <TableCell className="text-white">
-                                                        {user.name}
-                                                    </TableCell>
-                                                    <TableCell className="text-gray-400">
-                                                        {user.email}
-                                                    </TableCell>
-                                                    <TableCell className="text-gray-300">
-                                                        <span className="px-2 py-1 bg-gray-800 rounded text-sm">
-                                                            {user.role}
-                                                        </span>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <span
-                                                            className={`px-2 py-1 rounded text-sm font-medium ${
-                                                                user.status ===
-                                                                "Active"
-                                                                    ? "bg-green-500/20 text-green-400"
-                                                                    : user.status ===
-                                                                        "Invited"
-                                                                      ? "bg-blue-500/20 text-blue-400"
-                                                                      : "bg-red-500/20 text-red-400"
-                                                            }`}
-                                                        >
-                                                            {user.status}
-                                                        </span>
-                                                    </TableCell>
+                                <Card className="bg-gray-900 border-white/10 overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader className="bg-gray-800/50">
+                                                <TableRow className="border-white/5">
+                                                    <TableHead className="text-gray-400">
+                                                        Name
+                                                    </TableHead>
+                                                    <TableHead className="text-gray-400">
+                                                        Email
+                                                    </TableHead>
+                                                    <TableHead className="text-gray-400">
+                                                        Role
+                                                    </TableHead>
+                                                    <TableHead className="text-gray-400">
+                                                        Status
+                                                    </TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                                {filteredUsers.length === 0 && (
-                                    <div className="p-8 text-center">
-                                        <p className="text-gray-400">
-                                            No users found matching your
-                                            filters.
-                                        </p>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {filteredUsers.map((user) => (
+                                                    <TableRow
+                                                        key={user.id}
+                                                        className="border-white/5 hover:bg-gray-800/50"
+                                                    >
+                                                        <TableCell className="text-white">
+                                                            {user.name}
+                                                        </TableCell>
+                                                        <TableCell className="text-gray-400">
+                                                            {user.email}
+                                                        </TableCell>
+                                                        <TableCell className="text-gray-300">
+                                                            <span className="px-2 py-1 bg-gray-800 rounded text-sm">
+                                                                {user.role}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <span
+                                                                className={`px-2 py-1 rounded text-sm font-medium ${
+                                                                    user.status ===
+                                                                    "Active"
+                                                                        ? "bg-green-500/20 text-green-400"
+                                                                        : user.status ===
+                                                                            "Invited"
+                                                                          ? "bg-blue-500/20 text-blue-400"
+                                                                          : "bg-red-500/20 text-red-400"
+                                                                }`}
+                                                            >
+                                                                {user.status}
+                                                            </span>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
                                     </div>
-                                )}
-                            </Card>
-                        </div>
+                                    {filteredUsers.length === 0 && (
+                                        <div className="p-8 text-center">
+                                            <p className="text-gray-400">
+                                                No users found matching your
+                                                filters.
+                                            </p>
+                                        </div>
+                                    )}
+                                </Card>
+                            </div>
+                        )
                     ) : module.id === "training" ? (
                         // Training Curriculum - Schedule and Online Training Tiles
                         <div>
